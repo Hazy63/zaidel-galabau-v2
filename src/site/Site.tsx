@@ -1,31 +1,67 @@
 import clsx from 'clsx'
-import { ArrowRight, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, LockKeyhole, Mail, MapPin, Menu, Phone, Smartphone, Star, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Phone, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import { Wordmark } from '../Logo'
+import { Mark } from '../Logo'
 import { img } from '../crm/format'
-import ContactForm from './ContactForm'
-import { AREA, CATS, CONTACT, HERO, ONSITE, PROJECTS, REVIEWS, SERVICES, type Cat } from './content'
-import { scrollToId, useReveal } from './hooks'
+import ContactForm, { type Prefill } from './ContactForm'
+import { AREA, CATS, CONTACT, PROJECTS } from './content'
+import { GROUPS, HERO_FRAMES, PLANS, STEPS, fmt } from './content-v2'
+import { scrollToId } from './hooks'
+import './v2.css'
+
+// Inhalte nur verstecken, wenn JS läuft: ohne Skript bleibt alles sichtbar
+document.documentElement.classList.add('js')
 
 const NAV = [
   { id: 'leistungen', label: 'Leistungen' },
-  { id: 'referenzen', label: 'Referenzen' },
+  { id: 'arbeiten', label: 'Arbeiten' },
   { id: 'ablauf', label: 'Ablauf' },
   { id: 'kontakt', label: 'Kontakt' },
 ]
 
-export default function Site() {
-  useReveal()
-  const [scrolled, setScrolled] = useState(false)
-  const [menu, setMenu] = useState(false)
+const d = (n: number) => ({ '--i': n }) as CSSProperties
 
+/** Effekte: folgt der Systemeinstellung, lässt sich im Footer umschalten */
+function useCalm() {
+  const [calm, setCalm] = useState(() => {
+    const saved = localStorage.getItem('zaidel-fx')
+    if (saved) return saved === 'off'
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  })
   useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 40)
-    on()
-    window.addEventListener('scroll', on, { passive: true })
-    return () => window.removeEventListener('scroll', on)
+    document.documentElement.classList.toggle('calm', calm)
+  }, [calm])
+  const toggle = () => {
+    localStorage.setItem('zaidel-fx', calm ? 'on' : 'off')
+    setCalm(!calm)
+  }
+  return [calm, toggle] as const
+}
+
+/** Abschnitte treten einmal ein, sobald sie sichtbar werden */
+function useRise() {
+  useEffect(() => {
+    const io = new IntersectionObserver(
+      (es) =>
+        es.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-in')
+            io.unobserve(e.target)
+          }
+        }),
+      { threshold: 0.12 },
+    )
+    document.querySelectorAll('[data-rise], .drift').forEach((el) => io.observe(el))
+    return () => io.disconnect()
   }, [])
+}
+
+export default function Site() {
+  useRise()
+  const [calm, toggleCalm] = useCalm()
+  const [menu, setMenu] = useState(false)
+  const [prefill, setPrefill] = useState<Prefill>()
 
   const go = (id: string) => {
     setMenu(false)
@@ -33,463 +69,299 @@ export default function Site() {
   }
 
   return (
-    <div className="bg-stone-50 text-stone-900">
-      {/* Header */}
-      <header className={clsx('fixed inset-x-0 top-0 z-40 transition-all duration-300', scrolled ? 'bg-stone-50/92 shadow-[0_1px_0_rgb(0_0_0/0.06)] backdrop-blur-md' : 'bg-transparent')}>
-        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8">
-          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Nach oben">
-            <Wordmark light={!scrolled} />
-          </button>
-          <nav className="hidden items-center gap-8 md:flex">
-            {NAV.map((n) => (
-              <button key={n.id} onClick={() => go(n.id)} className={clsx('text-[14.5px] font-medium transition', scrolled ? 'text-stone-700 hover:text-stone-950' : 'text-white/85 hover:text-white')}>
-                {n.label}
-              </button>
-            ))}
-            <a href={CONTACT.phoneHref} className={clsx('inline-flex h-10 items-center gap-2 rounded-full px-4 text-[14px] font-semibold transition', scrolled ? 'bg-moss-800 text-white hover:bg-moss-700' : 'bg-white text-moss-900 hover:bg-stone-100')}>
-              <Phone size={15} /> {CONTACT.phone}
-            </a>
-          </nav>
-          <button onClick={() => setMenu(true)} className={clsx('grid size-11 place-items-center rounded-full md:hidden', scrolled ? 'text-stone-800' : 'text-white')} aria-label="Menü">
-            <Menu size={24} />
-          </button>
-        </div>
-      </header>
+    <div className="v2">
+      <Hero go={go} openMenu={() => setMenu(true)} />
+      <Intro />
+      <About />
+      <Services />
+      <Strip />
+      <Showcase go={go} />
+      <Steps />
+      <Estimate
+        onAsk={(p) => {
+          setPrefill(p)
+          go('anfrage')
+        }}
+      />
+      <Quote />
+      <Contact />
+      <Inquiry prefill={prefill} />
+      <Footer go={go} calm={calm} toggleCalm={toggleCalm} />
 
       {menu && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-moss-900 px-6 pt-5 pb-8 text-white md:hidden">
+        <div className="fixed inset-0 z-50 flex flex-col bg-[var(--inverse)] px-[var(--margin)] pt-5 pb-8 text-white" role="dialog" aria-modal="true" aria-label="Menü">
           <div className="flex items-center justify-between">
-            <Wordmark light />
-            <button onClick={() => setMenu(false)} className="grid size-11 place-items-center" aria-label="Schließen"><X size={26} /></button>
+            <span className="t-small flex items-center gap-2 font-bold"><Mark className="size-7 text-[var(--accent)]" dot="#fff" /> Zaidel</span>
+            <button onClick={() => setMenu(false)} className="grid size-12 place-items-center" aria-label="Menü schließen"><X size={26} strokeWidth={1.5} /></button>
           </div>
-          <nav className="mt-14 flex flex-col gap-1">
+          <nav className="mt-16 flex flex-col">
             {NAV.map((n) => (
-              <button key={n.id} onClick={() => go(n.id)} className="py-2 text-left font-display text-4xl">{n.label}</button>
+              <button key={n.id} onClick={() => go(n.id)} className="press t-head py-2 text-left">{n.label}</button>
             ))}
           </nav>
-          <div className="mt-auto space-y-3">
-            <a href={CONTACT.phoneHref} className="flex h-14 items-center justify-center gap-2 rounded-xl bg-white text-[16px] font-semibold text-moss-900"><Phone size={18} /> {CONTACT.phone}</a>
-            <a href={CONTACT.mobileHref} className="flex h-14 items-center justify-center gap-2 rounded-xl ring-1 ring-white/30"><Smartphone size={18} /> {CONTACT.mobile}</a>
-          </div>
+          <a href={CONTACT.phoneHref} className="btn mt-auto">{CONTACT.phone}</a>
         </div>
       )}
-
-      {/* Hero */}
-      <section className="relative isolate flex min-h-[100svh] items-end overflow-hidden bg-moss-950">
-        <HeroSlides />
-        <div className="mx-auto w-full max-w-7xl px-5 pt-32 pb-14 sm:px-8 sm:pb-20">
-          <p className="flex items-center gap-3 text-[13px] font-medium tracking-[0.16em] text-moss-200 uppercase">
-            <span className="h-px w-8 bg-moss-300" /> Garten- und Landschaftsbau · Kleinheubach am Main
-          </p>
-          <h1 className="mt-6 max-w-4xl font-display text-[44px] leading-[1.02] font-medium tracking-[-0.02em] text-white sm:text-[68px] lg:text-[84px]">
-            Wege, Mauern und Gärten, die <em className="font-normal text-moss-300 not-italic sm:italic">bleiben.</em>
-          </h1>
-          <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-white/80 sm:text-lg">
-            Wir bauen Außenanlagen im Landkreis Miltenberg – Pflaster, Natursteinmauern aus regionalem Buntsandstein, Treppen, Terrassen und Zäune. Mit eigener Kolonne und dem Chef selbst auf der Baustelle.
-          </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <button onClick={() => go('kontakt')} className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-clay-500 px-7 text-[16px] font-semibold text-white transition hover:bg-clay-600">
-              Vor-Ort-Termin anfragen <ArrowRight size={18} />
-            </button>
-            <button onClick={() => go('referenzen')} className="inline-flex h-14 items-center justify-center gap-2 rounded-full px-7 text-[16px] font-semibold text-white ring-1 ring-white/35 transition hover:bg-white/10">
-              Arbeiten ansehen
-            </button>
-          </div>
-          <div className="mt-14 flex flex-wrap items-center gap-x-10 gap-y-4 border-t border-white/15 pt-6 text-white/80">
-            <a href={CONTACT.maps} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-white">
-              <span className="flex gap-0.5 text-amber-300">{[0, 1, 2, 3, 4].map((i) => <Star key={i} size={15} className="fill-amber-300" />)}</span>
-              <span className="text-[14px]"><strong className="text-white">5,0</strong> bei Google</span>
-            </a>
-            <span className="text-[14px] italic">„Da merkt man, dass ein Profi am Werk ist.“</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Intro */}
-      <section className="mx-auto max-w-7xl px-5 pt-24 pb-16 sm:px-8 sm:pt-32 sm:pb-20">
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.15fr] lg:gap-20">
-          <div className="reveal">
-            <p className="text-[13px] font-semibold tracking-[0.16em] text-clay-600 uppercase">Herzlich willkommen</p>
-            <h2 className="mt-4 font-display text-[36px] leading-[1.08] font-medium tracking-tight text-balance sm:text-5xl">
-              Ein kleiner Betrieb. Mit großen Steinen.
-            </h2>
-          </div>
-          <div className="reveal space-y-5 text-[17px] leading-relaxed text-stone-600">
-            <p>
-              Zaidel Garten- und Landschaftsbau ist ein Dienstleister rund um Garten und Außenanlage. Wir gestalten neu, bauen um und pflegen – Gärten, Grünanlagen und Freiflächen, genau so, wie Sie sich das vorstellen.
-            </p>
-            <p>
-              Unser Schwerpunkt ist die Arbeit mit <strong className="font-semibold text-stone-800">Natur- und Betonwerkstein</strong>: vom gepflasterten Hof über die Granittreppe bis zur Hangmauer aus tonnenschweren Sandsteinblöcken.
-            </p>
-            <dl className="grid grid-cols-1 gap-6 border-t border-stone-200 pt-8 sm:grid-cols-3">
-              {[
-                ['Inhabergeführt', 'Dimitri Zaidel berät, plant und baut selbst mit.'],
-                ['Festes Team', 'Herr Zaidel und seine Mitarbeiter – Sie kennen, wer bei Ihnen baut.'],
-                ['Aus der Region', 'Kleinheubach, Miltenberg und Umgebung.'],
-              ].map(([t, d]) => (
-                <div key={t}>
-                  <dt className="font-semibold text-stone-900">{t}</dt>
-                  <dd className="mt-1 text-[15px] text-stone-500">{d}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      </section>
-
-      <OnSite />
-
-      {/* Leistungen */}
-      <section id="leistungen" className="scroll-mt-16 bg-stone-100 py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-5 sm:px-8">
-          <div className="reveal flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
-            <div>
-              <p className="text-[13px] font-semibold tracking-[0.16em] text-clay-600 uppercase">Leistungen</p>
-              <h2 className="mt-4 max-w-xl font-display text-[36px] leading-[1.08] font-medium tracking-tight sm:text-5xl">Was wir für Sie bauen</h2>
-            </div>
-            <p className="max-w-sm text-[15px] text-stone-500">Außerdem: Carports und Gartenhäuser, Natursteinverblender im Innenbereich, Erd- und Entwässerungsarbeiten.</p>
-          </div>
-          <div className="mt-14 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-            {SERVICES.map((s, i) => (
-              <article key={s.id} className="reveal group" style={{ transitionDelay: `${(i % 3) * 80}ms` }}>
-                <div className="relative overflow-hidden rounded-2xl">
-                  <img src={img(s.img, true)} alt={s.title} loading="lazy" className="photo aspect-[4/3] w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
-                  <span className="absolute top-3 left-3 rounded-full bg-moss-950/70 px-2.5 py-1 font-display text-[13px] text-white backdrop-blur">0{i + 1}</span>
-                </div>
-                <h3 className="mt-5 text-xl font-semibold tracking-tight">{s.title}</h3>
-                <p className="mt-2 text-[15.5px] leading-relaxed text-stone-600">{s.text}</p>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {s.tags.map((t) => <span key={t} className="rounded-full bg-white px-2.5 py-1 text-[12.5px] text-stone-600 ring-1 ring-stone-200">{t}</span>)}
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Buntsandstein */}
-      <section className="relative overflow-hidden bg-moss-900 text-white">
-        <div className="grid lg:grid-cols-2">
-          <div className="relative min-h-[360px] lg:order-2 lg:min-h-[640px]">
-            <img src={img('sandstein-setzen-bagger')} alt="Buntsandstein-Blöcke werden mit dem Bagger gesetzt" loading="lazy" className="photo absolute inset-0 size-full object-cover" />
-          </div>
-          <div className="reveal px-5 py-20 sm:px-8 lg:py-28 lg:pr-16 lg:pl-[max(2rem,calc((100vw-80rem)/2+2rem))]">
-            <p className="text-[13px] font-semibold tracking-[0.16em] text-moss-300 uppercase">Unser Material</p>
-            <h2 className="mt-4 font-display text-[36px] leading-[1.08] font-medium tracking-tight sm:text-5xl">Roter Main-Sandstein.</h2>
-            <p className="mt-6 max-w-lg text-[17px] leading-relaxed text-white/75">
-              Zwischen Spessart und Odenwald ist der rote Buntsandstein zuhause – er steckt in den Altstädten von Miltenberg und Wertheim. Wir setzen ihn als Blockstein für Hangmauern, Treppen und Beeteinfassungen ein. Jeder Block ist ein Unikat, jeder wird einzeln mit der Steinzange gesetzt.
-            </p>
-            <ul className="mt-8 space-y-3 text-[15.5px] text-white/85">
-              {['Frostfest und über Jahrzehnte haltbar', 'Passt zu Klinker, Granit und modernem Betonstein', 'Kurze Wege aus regionalen Steinbrüchen'].map((t) => (
-                <li key={t} className="flex gap-3"><span className="mt-2.5 h-px w-4 shrink-0 bg-clay-400" />{t}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Referenzen */}
-      <Gallery />
-
-      {/* Vorher / Nachher */}
-      <section className="mx-auto max-w-7xl px-5 pb-24 sm:px-8 sm:pb-32">
-        <div className="reveal grid gap-4 md:grid-cols-2">
-          {[
-            ['vorher-garten-sand', 'Vorher', 'Rohes Planum nach dem Hausbau.'],
-            ['nachher-garten-zaun', 'Nachher', 'Mauer, Zaun mit Sichtschutz, Rasengitter und Bepflanzung.'],
-          ].map(([src, label, cap]) => (
-            <figure key={src} className="relative overflow-hidden rounded-2xl">
-              <img src={img(src, true)} alt={cap} loading="lazy" className="photo aspect-[4/3] w-full object-cover" />
-              <span className={clsx('absolute top-4 left-4 rounded-full px-3 py-1 text-[12px] font-semibold tracking-wide uppercase', label === 'Vorher' ? 'bg-white/90 text-stone-800' : 'bg-moss-800 text-white')}>{label}</span>
-              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-5 pt-12 text-[15px] text-white">{cap}</figcaption>
-            </figure>
-          ))}
-        </div>
-        <p className="mt-4 text-center text-[14px] text-stone-500">Derselbe Reihenhausgarten – vor und nach unserer Arbeit.</p>
-      </section>
-
-      {/* Ablauf */}
-      <section id="ablauf" className="scroll-mt-16 border-y border-stone-200 bg-white py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-5 sm:px-8">
-          <div className="reveal max-w-2xl">
-            <p className="text-[13px] font-semibold tracking-[0.16em] text-clay-600 uppercase">So läuft es ab</p>
-            <h2 className="mt-4 font-display text-[36px] leading-[1.08] font-medium tracking-tight sm:text-5xl">Vom ersten Anruf bis zur Übergabe</h2>
-          </div>
-          <ol className="mt-16 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-            {[
-              ['Anruf oder Anfrage', 'Sie erzählen kurz, was Sie vorhaben – am Telefon oder über das Formular, gern mit ein paar Fotos.'],
-              ['Termin vor Ort', 'Wir schauen uns das Grundstück an, messen auf und besprechen Material, Ablauf und Zeitraum.'],
-              ['Schriftliches Angebot', 'Sie bekommen ein Angebot mit allen Positionen und Mengen. Keine Pauschale, die keiner versteht.'],
-              ['Bau und Übergabe', 'Unsere Kolonne baut, wir halten Sie auf dem Laufenden und übergeben die Baustelle besenrein.'],
-            ].map(([t, d], i) => (
-              <li key={t} className="reveal relative" style={{ transitionDelay: `${i * 90}ms` }}>
-                <div className="flex items-center gap-4">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-moss-800 font-display text-lg text-white">{i + 1}</span>
-                  {i < 3 && <span className="hidden h-px flex-1 bg-stone-200 lg:block" />}
-                </div>
-                <h3 className="mt-5 text-lg font-semibold">{t}</h3>
-                <p className="mt-2 text-[15.5px] leading-relaxed text-stone-600">{d}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* Stimmen */}
-      <section className="mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.6fr]">
-          <div className="reveal">
-            <p className="text-[13px] font-semibold tracking-[0.16em] text-clay-600 uppercase">Kundenstimmen</p>
-            <h2 className="mt-4 font-display text-[36px] leading-[1.08] font-medium tracking-tight sm:text-5xl">5,0 von 5</h2>
-            <p className="mt-3 text-stone-500">aus allen Bewertungen bei Google.</p>
-            <a href={CONTACT.maps} target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center gap-1.5 text-[15px] font-semibold text-moss-700 hover:underline">
-              Auf Google ansehen <ArrowUpRight size={16} />
-            </a>
-          </div>
-          <div className="grid gap-5 sm:grid-cols-2">
-            {REVIEWS.filter((r) => r.text).map((r) => (
-              <figure key={r.name} className="reveal flex flex-col rounded-2xl bg-white p-7 ring-1 ring-stone-200">
-                <span className="flex gap-0.5 text-amber-400">{[0, 1, 2, 3, 4].map((i) => <Star key={i} size={16} className="fill-amber-400" />)}</span>
-                <blockquote className="mt-5 flex-1 font-display text-[22px] leading-snug text-stone-800">„{r.text}“</blockquote>
-                <figcaption className="mt-6 text-[14px] text-stone-500"><span className="font-semibold text-stone-800">{r.name}</span> · Google, {r.when}</figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Kontakt */}
-      <section id="kontakt" className="scroll-mt-16 bg-moss-950 text-white">
-        <div className="mx-auto grid max-w-7xl gap-14 px-5 py-24 sm:px-8 sm:py-32 lg:grid-cols-[1fr_1.25fr] lg:gap-20">
-          <div className="reveal">
-            <p className="text-[13px] font-semibold tracking-[0.16em] text-moss-300 uppercase">Kontakt</p>
-            <h2 className="mt-4 font-display text-[36px] leading-[1.08] font-medium tracking-tight sm:text-5xl">Ein Traumgarten gesucht?</h2>
-            <p className="mt-5 max-w-md text-[17px] leading-relaxed text-white/70">Rufen Sie an oder schreiben Sie uns. Wir kommen vorbei, schauen es uns an und sagen Ihnen ehrlich, was geht.</p>
-            <div className="mt-10 space-y-4">
-              <a href={CONTACT.phoneHref} className="flex items-center gap-4 group">
-                <span className="grid size-12 place-items-center rounded-full bg-white/10 group-hover:bg-white/15"><Phone size={19} /></span>
-                <span><span className="block text-[13px] text-white/50">Büro</span><span className="text-xl font-semibold">{CONTACT.phone}</span></span>
-              </a>
-              <a href={CONTACT.mobileHref} className="flex items-center gap-4 group">
-                <span className="grid size-12 place-items-center rounded-full bg-white/10 group-hover:bg-white/15"><Smartphone size={19} /></span>
-                <span><span className="block text-[13px] text-white/50">Mobil</span><span className="text-xl font-semibold">{CONTACT.mobile}</span></span>
-              </a>
-              <a href={`mailto:${CONTACT.email}`} className="flex items-center gap-4 group">
-                <span className="grid size-12 place-items-center rounded-full bg-white/10 group-hover:bg-white/15"><Mail size={19} /></span>
-                <span><span className="block text-[13px] text-white/50">E-Mail</span><span className="text-[17px] font-semibold">{CONTACT.email}</span></span>
-              </a>
-              <a href={CONTACT.maps} target="_blank" rel="noreferrer" className="flex items-center gap-4 group">
-                <span className="grid size-12 place-items-center rounded-full bg-white/10 group-hover:bg-white/15"><MapPin size={19} /></span>
-                <span><span className="block text-[13px] text-white/50">Adresse</span><span className="text-[17px] font-semibold">{CONTACT.street}, {CONTACT.zip} {CONTACT.city}</span></span>
-              </a>
-            </div>
-            <div className="mt-12">
-              <div className="text-[13px] text-white/50">Wir arbeiten unter anderem in</div>
-              <p className="mt-2 text-[15px] leading-relaxed text-white/80">{AREA.join(' · ')}</p>
-            </div>
-          </div>
-          <div className="reveal">
-            <ContactForm />
-          </div>
-        </div>
-      </section>
-
-      <footer className="bg-moss-950 text-white/60">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 border-t border-white/10 px-5 py-10 text-[14px] sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <Wordmark light />
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <Link to="/impressum" className="hover:text-white">Impressum</Link>
-            <Link to="/datenschutz" className="hover:text-white">Datenschutz</Link>
-            <Link to="/app" className="inline-flex items-center gap-1.5 hover:text-white"><LockKeyhole size={14} /> Team-Login</Link>
-          </div>
-          <span>© {new Date().getFullYear()} Dimitri Zaidel</span>
-        </div>
-      </footer>
-
-      {/* Mobile Anruf-Leiste */}
-      <a href={CONTACT.phoneHref} className={clsx('safe-bottom fixed inset-x-4 bottom-4 z-30 flex h-14 items-center justify-center gap-2 rounded-full bg-clay-500 text-[16px] font-semibold text-white shadow-pop transition duration-300 md:hidden', scrolled ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-6 opacity-0')}>
-        <Phone size={18} /> Jetzt anrufen
-      </a>
     </div>
   )
 }
 
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+/* ---------- Hero: der Name als Monument, Baustellen ziehen darunter durch ---------- */
 
-/** Hero: Diashow mit langsamem Zoom, Bild rechts frei, Text links auf Verlauf */
-function HeroSlides() {
+const STEP_SVH = 55
+
+function Hero({ go, openMenu }: { go: (id: string) => void; openMenu: () => void }) {
   const [i, setI] = useState(0)
+  const marks = useRef<(HTMLDivElement | null)[]>([])
+  const n = HERO_FRAMES.length
+
   useEffect(() => {
-    if (reducedMotion()) return
-    const t = setInterval(() => setI((n) => (n + 1) % HERO.length), 7000)
-    return () => clearInterval(t)
+    const io = new IntersectionObserver(
+      (es) => es.forEach((e) => e.isIntersecting && setI(Number((e.target as HTMLElement).dataset.n))),
+      { rootMargin: '-50% 0px -50% 0px' },
+    )
+    marks.current.forEach((el) => el && io.observe(el))
+    return () => io.disconnect()
   }, [])
+
+  const cur = HERO_FRAMES[i]
   return (
-    <>
-      {HERO.map((h, n) => (
-        <div key={h.img} className={clsx('absolute inset-0 -z-10 transition-opacity duration-[1500ms]', n === i ? 'opacity-100' : 'opacity-0')} aria-hidden={n !== i}>
-          <img
-            src={img(h.img)}
-            alt={h.title}
-            className={clsx('photo size-full object-cover', n === i && 'kenburns')}
-            style={{ objectPosition: h.pos }}
-            fetchPriority={n === 0 ? 'high' : 'low'}
-            loading={n === 0 ? 'eager' : 'lazy'}
-          />
-        </div>
-      ))}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-moss-950 via-moss-950/70 to-moss-950/30 sm:from-moss-950/95 sm:via-moss-950/35 sm:to-moss-950/10" />
-      <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-moss-950/75 via-moss-950/25 to-transparent md:block" />
-      <div className="absolute inset-x-0 top-0 -z-10 h-32 bg-gradient-to-b from-moss-950/50 to-transparent" />
-      <div className="absolute right-8 bottom-20 hidden items-center gap-4 text-[13px] text-white/75 lg:flex">
-        <span>{HERO[i].title}</span>
-        <span className="flex gap-1.5">
-          {HERO.map((h, n) => (
-            <button key={h.img} onClick={() => setI(n)} aria-label={`Bild ${n + 1}`} className={clsx('h-1 rounded-full transition-all', n === i ? 'w-8 bg-white' : 'w-4 bg-white/40 hover:bg-white/70')} />
-          ))}
-        </span>
-      </div>
-    </>
-  )
-}
-
-/** Laufband mit Fotos von der Arbeit – zeigt, dass hier wirklich gebaut wird */
-function OnSite() {
-  const items = [...ONSITE, ...ONSITE]
-  return (
-    <section className="overflow-hidden pb-24 sm:pb-32" aria-label="Auf der Baustelle">
-      <div className="mx-auto mb-8 flex max-w-7xl items-end justify-between gap-6 px-5 sm:px-8">
-        <p className="text-[13px] font-semibold tracking-[0.16em] text-clay-600 uppercase">Auf der Baustelle</p>
-        <p className="hidden text-[14px] text-stone-500 sm:block">Echte Fotos aus unserer Arbeit – keine Bilder aus dem Katalog.</p>
-      </div>
-      <div className="relative motion-reduce:overflow-x-auto">
-        <ul className="marquee flex w-max gap-3 sm:gap-4">
-          {items.map((p, n) => (
-            <li key={n} className="relative h-56 w-72 shrink-0 overflow-hidden rounded-xl sm:h-72 sm:w-96" aria-hidden={n >= ONSITE.length}>
-              <img src={img(p.img, true)} alt={p.title} loading="lazy" className="photo size-full object-cover" />
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-4 pt-10 text-[13.5px] font-medium text-white">{p.title}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-stone-50 sm:w-24" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-stone-50 sm:w-24" />
-      </div>
-    </section>
-  )
-}
-
-const catLabel = (c: Cat) => CATS.find((x) => x.id === c)?.label ?? ''
-
-function Gallery() {
-  const [cat, setCat] = useState<Cat | 'alle'>('alle')
-  const [open, setOpen] = useState<number | null>(null)
-  const [expanded, setExpanded] = useState(false)
-  const list = PROJECTS.filter((p) => cat === 'alle' || p.cat === cat)
-  const bento = cat === 'alle'
-  // Zugeklappt: bei „Alle“ genau eine 5er-Gruppe (1 groß + 4 klein), sonst eine Reihe à 3
-  const limit = bento ? 5 : 3
-  const canCollapse = list.length > limit
-  const shown = expanded || !canCollapse ? list : list.slice(0, limit)
-  const toggle = () => {
-    if (expanded) scrollToId('referenzen')
-    setExpanded(!expanded)
-  }
-
-  return (
-    <section id="referenzen" className="scroll-mt-16 mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
-      <div className="reveal flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-        <div>
-          <p className="text-[13px] font-semibold tracking-[0.16em] text-clay-600 uppercase">Referenzen</p>
-          <h2 className="mt-4 font-display text-[36px] leading-[1.08] font-medium tracking-tight sm:text-5xl">Aus unseren Baustellen</h2>
-        </div>
-        <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:px-0">
-          {CATS.map((c) => (
-            <button key={c.id} onClick={() => { setCat(c.id); setExpanded(false) }}className={clsx('h-10 shrink-0 rounded-full px-4 text-[14px] font-medium ring-1 transition', cat === c.id ? 'bg-moss-800 text-white ring-moss-800' : 'text-stone-700 ring-stone-300 hover:ring-stone-500')}>
-              {c.label}
-            </button>
+    <section aria-label="Zaidel Garten- und Landschaftsbau" className="relative" style={{ height: `calc(100svh + ${(n - 1) * STEP_SVH}svh)` }}>
+      <div className="hero-layer sticky top-0 h-svh overflow-hidden" style={{ backgroundColor: cur.ground }}>
+        {/* Bildstapel: jedes neue Foto wird von unten eingesetzt wie ein Stein */}
+        <div className="absolute inset-x-4 top-[104px] bottom-[176px] md:inset-x-auto md:top-[90px] md:bottom-0 md:left-1/2 md:w-[37vw] md:-translate-x-1/2">
+          {HERO_FRAMES.map((f, k) => (
+            <div key={f.img} className="hero-frame absolute inset-0 overflow-hidden" data-state={k < i ? 'prev' : k === i ? 'on' : 'next'} style={{ zIndex: k }}>
+              <img
+                src={img(f.img)}
+                alt={f.title}
+                width={1200}
+                height={1800}
+                className="photo size-full object-cover"
+                style={f.pos ? { objectPosition: f.pos } : undefined}
+                fetchPriority={k === 0 ? 'high' : 'low'}
+                loading={k < 2 ? 'eager' : 'lazy'}
+              />
+            </div>
           ))}
         </div>
-      </div>
-      <div id="referenzen-raster" key={cat} className={clsx('fadein mt-12 grid gap-3', bento ? 'grid-flow-dense auto-rows-[170px] grid-cols-2 sm:auto-rows-[240px] lg:auto-rows-[260px] lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3')}>
-        {shown.map((p, i) => {
-          const big = bento && i % 5 === 0
-          return (
-            <button
-              key={p.img}
-              onClick={() => setOpen(i)}
-              className={clsx(
-                'group relative overflow-hidden rounded-xl bg-stone-200 text-left',
-                !bento && 'aspect-[4/3]',
-                big && 'col-span-2 row-span-2',
-                big && (i / 5) % 2 === 1 && 'lg:col-start-3',
-              )}
-            >
-              <img src={img(p.img, !big)} alt={p.title} loading="lazy" className="photo size-full object-cover transition duration-700 group-hover:scale-[1.04]" style={p.pos ? { objectPosition: p.pos } : undefined} />
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent p-3 pt-12 sm:p-4 sm:pt-14">
-                <span className={clsx('block font-medium text-white', big ? 'text-[15px] sm:text-[17px]' : 'text-[13px] sm:text-[14.5px]')}>{p.title}</span>
-                <span className="mt-0.5 hidden text-[12px] tracking-wide text-white/65 uppercase sm:block">{catLabel(p.cat)}</span>
-              </span>
-            </button>
-          )
-        })}
-      </div>
 
-      {canCollapse && (
-        <div className="mt-8 flex justify-center">
-          <button
-            onClick={toggle}
-            aria-expanded={expanded}
-            aria-controls="referenzen-raster"
-            className="group inline-flex h-12 items-center gap-2 rounded-full px-6 text-[15px] font-semibold text-moss-800 ring-1 ring-stone-300 transition hover:bg-stone-100 hover:ring-stone-500 active:scale-[0.98]"
-          >
-            {expanded ? 'Weniger anzeigen' : `Alle ${list.length} Referenzen ansehen`}
-            <ChevronDown size={18} className={clsx('transition duration-300', expanded && 'rotate-180')} />
+        <h1 className="t-monument pointer-events-none absolute inset-x-0 top-[64px] z-10 text-center uppercase md:top-[96px]">Zaidel</h1>
+        <div aria-hidden className="name-cut pointer-events-none absolute inset-0 z-10">
+          <p className="t-monument absolute inset-x-0 top-[64px] text-center text-white uppercase md:top-[96px]">Zaidel</p>
+        </div>
+
+        <div className="wrap absolute inset-x-0 top-0 z-20 flex h-[56px] items-center justify-between md:h-[72px]">
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="t-small flex items-center gap-2 font-bold" aria-label="Nach oben">
+            <Mark className="size-7 text-[var(--ink)]" dot="#1c211d" /> <span className="hidden sm:inline">Garten- und Landschaftsbau</span>
+          </button>
+          <nav className="hidden gap-8 font-medium md:flex">
+            {NAV.map((x) => (
+              <button key={x.id} onClick={() => go(x.id)} className="link-u">{x.label}</button>
+            ))}
+          </nav>
+          <button onClick={openMenu} className="h-11 px-1 font-bold md:hidden">Menü</button>
+        </div>
+
+        {/* unten links: Satz und Bildtitel, am Desktop nur in der freien Spalte links vom Foto */}
+        <div className="wrap absolute inset-x-0 bottom-5 z-20 md:right-auto md:bottom-8 md:w-[31.5vw]">
+          <p className="t-lead max-w-[30ch] font-bold">Garten- und Landschaftsbau in Kleinheubach am Main.</p>
+          <div className="mt-3 flex items-end justify-between gap-4">
+            <p className="t-small font-medium" aria-live="polite">Im Bild: {cur.title}</p>
+            <a href={CONTACT.phoneHref} className="btn btn-ink shrink-0 md:hidden"><Phone size={18} strokeWidth={1.75} /> Anrufen</a>
+          </div>
+        </div>
+        {/* unten rechts, rechts vom Foto: die eine Aktion */}
+        <div className="wrap absolute right-0 bottom-8 z-20 hidden w-[31.5vw] justify-end md:flex">
+          <button onClick={() => go('anfrage')} className="btn btn-ink">
+            Vor-Ort-Termin anfragen <ArrowRight size={18} strokeWidth={1.75} />
           </button>
         </div>
-      )}
+      </div>
 
-      {open !== null && list[open] && <Lightbox list={list} index={open} onChange={setOpen} onClose={() => setOpen(null)} />}
+      {/* Marken für den Bildwechsel beim Scrollen */}
+      <div className="pointer-events-none absolute inset-x-0 top-0" aria-hidden>
+        {HERO_FRAMES.map((f, k) => (
+          <div key={f.img} ref={(el) => { marks.current[k] = el }} data-n={k} style={{ height: `${STEP_SVH}svh` }} />
+        ))}
+      </div>
     </section>
   )
 }
 
-function Lightbox({ list, index, onChange, onClose }: { list: typeof PROJECTS; index: number; onChange: (i: number) => void; onClose: () => void }) {
+/* ---------- Intro: ein Absatz in der rechten Hälfte, ein Foto ---------- */
+
+function Intro() {
+  return (
+    <section data-rise className="wrap grid grid-cols-12 gap-x-[var(--margin)] py-[clamp(6rem,11vw,10rem)]">
+      <p style={d(0)} className="t-lead col-span-12 md:col-span-7 md:col-start-6 md:indent-[3em] pretty">
+        Ein kleiner Betrieb aus Kleinheubach. Der Chef baut selbst mit, und was wir setzen, soll nach vielen Wintern noch gerade liegen.
+      </p>
+      <div style={d(1)} className="col-span-7 col-start-6 mt-12 overflow-hidden md:col-span-3 md:col-start-1 md:mt-[-4vw]">
+        <img src={img('pflaster-sandstein-detail', true)} alt="Hof mit Buntsandstein-Einfassung" width={800} height={800} loading="lazy" className="photo drift aspect-[4/5] w-full object-cover md:aspect-square" />
+      </div>
+      <p style={d(2)} className="t-small col-span-5 col-start-1 row-start-2 self-end md:col-span-2 md:row-start-auto md:mt-24 md:max-w-[180px] md:self-auto">
+        Unser Schwerpunkt ist Natur- und Betonwerkstein. Dazu Carports, Gartenhäuser, Erd- und Entwässerungsarbeiten.
+      </p>
+    </section>
+  )
+}
+
+/* ---------- Über uns: Foto als Initiale ---------- */
+
+function About() {
+  return (
+    <section data-rise className="wrap grid grid-cols-12 gap-x-[var(--margin)] pb-[clamp(6rem,10vw,9rem)]">
+      <dl style={d(0)} className="t-small order-2 col-span-12 mt-10 grid grid-cols-3 gap-4 md:order-none md:col-span-2 md:mt-1 md:flex md:flex-col md:gap-5">
+        <div><dt className="font-bold">Ort</dt><dd>{CONTACT.street}, {CONTACT.city}</dd></div>
+        <div><dt className="font-bold">Betrieb</dt><dd>Inhabergeführt</dd></div>
+        <div><dt className="font-bold">Telefon</dt><dd><a className="link-u" href={CONTACT.phoneHref}>{CONTACT.phone}</a></dd></div>
+      </dl>
+      <div style={d(1)} className="t-lead col-span-12 md:col-span-10 md:col-start-3">
+        <p className="pretty">
+          <img src={img('treppe-bau-mitarbeiter', true)} alt="Mitarbeiter setzen Blockstufen" width={400} height={400} loading="lazy" className="photo float-left mt-1 mr-[0.5em] aspect-square w-[110px] object-cover md:w-[3.6em]" />
+          <strong className="font-bold">Dimitri Zaidel</strong> <span className="text-muted">führt den Betrieb selbst. Er kommt zum ersten Termin, misst auf, schreibt das Angebot und ist beim Bau dabei. Sie haben einen Ansprechpartner vom ersten Anruf bis zur Übergabe und kennen die Leute, die bei Ihnen arbeiten.</span>
+        </p>
+        <p className="text-muted mt-[1.2em] pretty">
+          Roter Main-Sandstein steckt in den Altstädten von Miltenberg und Wertheim. Wir setzen ihn als Blockstein für Hangmauern, Treppen und Beeteinfassungen, jeden Block einzeln mit der Steinzange.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+/* ---------- Leistungen: Namensspalten in einer Größe ---------- */
+
+function Services() {
+  const [hover, setHover] = useState<{ name: string; text: string } | null>(null)
+  return (
+    <section id="leistungen" aria-label="Leistungen" className="scroll-mt-4 bg-[var(--surface)] py-[clamp(6rem,20vh,12rem)]">
+      <div data-rise className="wrap grid grid-cols-12 gap-x-[var(--margin)]">
+        <h2 style={d(0)} className="t-lead col-span-12 font-bold">Was wir bauen</h2>
+        {GROUPS.map((col, c) => (
+          <div key={c} style={d(c + 1)} className="col-span-12 mt-12 space-y-10 sm:col-span-4 md:col-span-3 md:mt-24" onMouseLeave={() => setHover(null)}>
+            {col.map((g) => (
+              <div key={g.name}>
+                <h3 className="font-bold">{g.name}</h3>
+                <ul className="text-muted mt-[1.25em] space-y-0.5 leading-[1.3] md:leading-[1.25]">
+                  {g.items.map((it) => (
+                    <li key={it} className="cap hover:text-[var(--ink)]" onMouseEnter={() => setHover({ name: it, text: g.text })}>{it}</li>
+                  ))}
+                </ul>
+                <p className="mt-3 md:hidden">{g.text}</p>
+              </div>
+            ))}
+          </div>
+        ))}
+        <div className="col-span-3 mt-24 hidden md:block" aria-live="polite">
+          {hover ? (
+            <p><strong className="font-bold">{hover.name}.</strong> {hover.text}</p>
+          ) : (
+            <p className="text-muted">Zeigen Sie auf eine Leistung, um mehr zu lesen.</p>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ---------- Arbeiten: kleine Rahmen, viel Fläche ---------- */
+
+function Strip() {
+  const [open, setOpen] = useState<number | null>(null)
+  const ref = useRef<HTMLUListElement>(null)
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null)
+
+  return (
+    <section id="arbeiten" aria-label="Arbeiten" className="flex min-h-[80svh] scroll-mt-4 flex-col justify-center md:min-h-svh">
+      <h2 className="wrap t-lead mb-6 font-bold">
+        Unsere Arbeiten <span className="text-muted font-medium">· {PROJECTS.length} Fotos</span>
+      </h2>
+      <ul
+        ref={ref}
+        className="strip wrap flex gap-[5vw] overflow-x-auto"
+        onPointerDown={(e) => {
+          if (e.pointerType !== 'mouse' || !ref.current) return
+          drag.current = { x: e.clientX, left: ref.current.scrollLeft, moved: false }
+        }}
+        onPointerMove={(e) => {
+          const s = drag.current
+          if (!s || !ref.current) return
+          const dx = e.clientX - s.x
+          if (Math.abs(dx) > 5) {
+            s.moved = true
+            ref.current.classList.add('dragging')
+          }
+          ref.current.scrollLeft = s.left - dx
+        }}
+        onPointerUp={() => {
+          ref.current?.classList.remove('dragging')
+          setTimeout(() => (drag.current = null), 0)
+        }}
+        onPointerLeave={() => {
+          ref.current?.classList.remove('dragging')
+          drag.current = null
+        }}
+      >
+        {PROJECTS.map((p, k) => (
+          <li key={p.img} className="shrink-0">
+            <button
+              onClick={() => !drag.current?.moved && setOpen(k)}
+              className="frame block h-[calc(34vw*1.5)] w-[34vw] overflow-hidden md:h-[24svh] md:w-[11vw]"
+              aria-label={`${p.title} groß ansehen`}
+            >
+              <img src={img(p.img, true)} alt={p.title} width={480} height={720} loading="lazy" draggable={false} className="photo size-full object-cover" style={p.pos ? { objectPosition: p.pos } : undefined} />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="wrap t-small text-muted mt-6">Wischen oder ziehen, antippen zum Vergrößern.</p>
+      {open !== null && <Lightbox index={open} onChange={setOpen} onClose={() => setOpen(null)} />}
+    </section>
+  )
+}
+
+const catLabel = (c: string) => CATS.find((x) => x.id === c)?.label ?? ''
+
+function Lightbox({ index, onChange, onClose }: { index: number; onChange: (i: number) => void; onClose: () => void }) {
+  const list = PROJECTS
   const n = list.length
-  const prev = () => onChange((index - 1 + n) % n)
-  const next = () => onChange((index + 1) % n)
+  const prev = useCallback(() => onChange((index - 1 + n) % n), [index, n, onChange])
+  const next = useCallback(() => onChange((index + 1) % n), [index, n, onChange])
   const [touchX, setTouchX] = useState<number | null>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowRight') onChange((index + 1) % n)
-      if (e.key === 'ArrowLeft') onChange((index - 1 + n) % n)
+      if (e.key === 'ArrowRight') next()
+      if (e.key === 'ArrowLeft') prev()
     }
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
-  }, [index, n, onChange, onClose])
+  }, [next, prev, onClose])
 
   useEffect(() => {
+    closeRef.current?.focus()
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = ''
     }
   }, [])
 
-  // Nachbarbilder vorladen, damit Blättern ohne Wartezeit geht
   useEffect(() => {
-    for (const d of [1, -1]) new Image().src = img(list[(index + d + n) % n].img)
+    for (const s of [1, -1]) new Image().src = img(list[(index + s + n) % n].img)
   }, [index, n, list])
 
   const p = list[index]
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-stone-950/96 backdrop-blur-sm" onClick={onClose} role="dialog" aria-modal="true" aria-label={p.title}>
-      <div className="flex items-center justify-between p-4 text-white/70">
-        <span className="pl-2 text-[14px]">{index + 1} / {n}</span>
-        <button className="grid size-11 place-items-center rounded-full text-white hover:bg-white/10" aria-label="Schließen"><X size={24} /></button>
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#101311] text-white" onClick={onClose} role="dialog" aria-modal="true" aria-label={p.title}>
+      <div className="wrap flex h-16 items-center justify-between">
+        <span className="t-small">{index + 1} von {n}</span>
+        <button ref={closeRef} className="grid size-12 place-items-center" aria-label="Schließen"><X size={26} strokeWidth={1.5} /></button>
       </div>
       <div
-        className="relative flex min-h-0 flex-1 items-center justify-center px-2 sm:px-20"
+        className="relative flex min-h-0 flex-1 items-center justify-center px-2 md:px-20"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
         onTouchEnd={(e) => {
@@ -499,21 +371,247 @@ function Lightbox({ list, index, onChange, onClose }: { list: typeof PROJECTS; i
           setTouchX(null)
         }}
       >
-        <img key={p.img} src={img(p.img)} alt={p.title} className="photo fadein max-h-full max-w-full rounded-lg object-contain shadow-2xl" />
-        <button onClick={prev} className="absolute left-3 hidden size-12 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:grid" aria-label="Zurück"><ChevronLeft size={24} /></button>
-        <button onClick={next} className="absolute right-3 hidden size-12 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:grid" aria-label="Weiter"><ChevronRight size={24} /></button>
+        <img key={p.img} src={img(p.img)} alt={p.title} className="photo lb-img max-h-full max-w-full object-contain" />
+        <button onClick={prev} className="press absolute left-3 hidden size-12 place-items-center bg-white/10 hover:bg-white/20 md:grid" aria-label="Vorheriges Foto"><ChevronLeft size={24} strokeWidth={1.5} /></button>
+        <button onClick={next} className="press absolute right-3 hidden size-12 place-items-center bg-white/10 hover:bg-white/20 md:grid" aria-label="Nächstes Foto"><ChevronRight size={24} strokeWidth={1.5} /></button>
       </div>
-      <div className="p-5 text-center" onClick={(e) => e.stopPropagation()}>
-        <p className="text-white">{p.title} <span className="text-white/45">· {catLabel(p.cat)}</span></p>
-        <p className="mt-1 text-[12.5px] text-white/40 sm:hidden">Wischen zum Blättern</p>
-        <div className="mx-auto mt-4 hidden w-fit max-w-full gap-2 overflow-x-auto pb-1 sm:flex">
-          {list.map((t, i) => (
-            <button key={t.img} onClick={() => onChange(i)} className={clsx('h-12 w-16 shrink-0 overflow-hidden rounded-md transition', i === index ? 'ring-2 ring-white' : 'opacity-50 hover:opacity-90')} aria-label={t.title}>
-              <img src={img(t.img, true)} alt="" loading="lazy" className="size-full object-cover" />
+      <div className="wrap py-5" onClick={(e) => e.stopPropagation()}>
+        <p>{p.title} <span className="text-white/75">· {catLabel(p.cat)}</span></p>
+        <p className="t-small mt-1 text-white/75 md:hidden">Wischen zum Blättern</p>
+      </div>
+    </div>
+  )
+}
+
+/* ---------- Vorher / Nachher: quadratische Tafel, wenig Text ---------- */
+
+function Showcase({ go }: { go: (id: string) => void }) {
+  const [tab, setTab] = useState<'vorher' | 'nachher'>('nachher')
+  const pics = {
+    vorher: { src: 'vorher-garten-sand', alt: 'Vorher: rohes Planum nach dem Hausbau' },
+    nachher: { src: 'nachher-garten-zaun', alt: 'Nachher: Mauer, Zaun mit Sichtschutz, Rasengitter und Bepflanzung' },
+  }
+  return (
+    <section aria-label="Vorher und nachher" className="grid bg-[var(--surface)] md:min-h-[88svh] md:grid-cols-2">
+      <div className="relative m-4 aspect-square self-center md:m-10">
+        {(['vorher', 'nachher'] as const).map((t) => (
+          <img key={t} src={img(pics[t].src)} alt={pics[t].alt} loading="lazy" className={clsx('photo absolute inset-0 size-full object-cover transition-opacity duration-500', tab === t ? 'opacity-100' : 'opacity-0')} aria-hidden={tab !== t} />
+        ))}
+      </div>
+      <div data-rise className="flex flex-col justify-between gap-10 px-4 pb-6 md:px-10 md:py-10">
+        <div style={d(0)} data-still role="tablist" aria-label="Ansicht" className="flex gap-6">
+          {(['vorher', 'nachher'] as const).map((t) => (
+            <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={clsx('press py-2 capitalize transition-colors', tab === t ? 'font-bold text-[var(--ink)] underline decoration-2 underline-offset-8' : 'text-muted')}>
+              {t}
             </button>
           ))}
         </div>
+        <div style={d(1)}>
+          <h2 className="t-lead font-bold">Derselbe Garten</h2>
+          <p className="mt-12 max-w-[34ch] pretty">
+            Nach dem Hausbau war hier rohes Planum. Wir haben eine Mauer gesetzt, den Zaun mit Sichtschutz gebaut, Stellplätze mit Rasengitter angelegt und bepflanzt.
+          </p>
+        </div>
+        <div style={d(2)} data-still className="grid gap-3 md:grid-cols-2">
+          <button onClick={() => go('anfrage')} className="btn btn-ink min-h-[60px] md:min-h-[72px]">Termin anfragen</button>
+          <a href={CONTACT.phoneHref} className="btn min-h-[60px] bg-white md:min-h-[72px]">Anrufen</a>
+        </div>
       </div>
-    </div>
+    </section>
+  )
+}
+
+/* ---------- Ablauf: ein Verb pro Schritt ---------- */
+
+function Steps() {
+  return (
+    <section id="ablauf" aria-label="So läuft es ab" className="scroll-mt-0">
+      {STEPS.map((s) => (
+        <div key={s.verb} className="relative h-svh overflow-clip bg-[var(--inverse)]">
+          <img src={img(s.img)} alt="" loading="lazy" className="photo absolute inset-0 size-full object-cover" style={s.pos ? { objectPosition: s.pos } : undefined} />
+          <div className="absolute inset-0 bg-[#0d100e]/35" />
+          <div className="relative h-full pt-[30svh] pb-[26svh] md:pb-[18svh]">
+            <h3 className="verb t-monument py-[0.08em] text-center text-white">{s.verb}</h3>
+          </div>
+          <p className="absolute right-4 bottom-4 left-4 bg-[#0d100e]/70 p-4 text-white md:right-auto md:bottom-8 md:left-8 md:max-w-[30ch] md:p-5">{s.text}</p>
+        </div>
+      ))}
+    </section>
+  )
+}
+
+/* ---------- Das Live-Element: was steht in Ihrem Angebot? ---------- */
+
+function Estimate({ onAsk }: { onAsk: (p: Prefill) => void }) {
+  const [planId, setPlanId] = useState(PLANS[0].id)
+  const plan = PLANS.find((p) => p.id === planId)!
+  const [size, setSize] = useState(plan.start)
+  const rows = plan.rows(size)
+
+  return (
+    <section id="angebot" aria-label="Was steht in Ihrem Angebot?" className="wrap py-[var(--gap-section)]">
+      <div data-rise className="grid grid-cols-12 gap-x-[var(--margin)] gap-y-12">
+        <h2 style={d(0)} className="t-head col-span-12 balance">Was steht im Angebot?</h2>
+        <div style={d(1)} data-still className="col-span-12 md:col-span-5">
+          <p className="max-w-[44ch]">Bei uns steht jede Arbeit einzeln im Angebot, mit Menge. Wählen Sie ein Vorhaben und die Größe, dann sehen Sie, woraus es besteht.</p>
+          <div role="radiogroup" aria-label="Vorhaben" className="mt-10 flex flex-col items-start">
+            {PLANS.map((p) => (
+              <button
+                key={p.id}
+                role="radio"
+                aria-checked={p.id === planId}
+                onClick={() => {
+                  setPlanId(p.id)
+                  setSize(p.start)
+                }}
+                className={clsx('press t-lead py-1.5 text-left transition-colors', p.id === planId ? 'font-bold text-[var(--ink)]' : 'text-muted hover:text-[var(--ink)]')}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <label className="mt-10 block">
+            <span className="block">{plan.sizeLabel}: <strong className="tnum t-lead font-bold">{fmt(size)} {plan.unit}</strong></span>
+            <input type="range" min={plan.min} max={plan.max} value={size} onChange={(e) => setSize(Number(e.target.value))} className="mt-4 h-11 w-full accent-[var(--ink)]" />
+          </label>
+        </div>
+        <div style={d(2)} data-still className="col-span-12 md:col-span-7">
+          <table className="tnum w-full text-left">
+            <thead>
+              <tr className="t-small border-b-2 border-[var(--ink)]">
+                <th className="py-3 font-bold">Leistung</th>
+                <th className="py-3 text-right font-bold">Menge</th>
+                <th className="w-16 py-3 pl-3 font-bold">Einheit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(([t, q, u]) => (
+                <tr key={t} /* echte Tabelle, Linien erlaubt. taste-skill-ignore */ className="border-b border-[#d5d8d3]">
+                  <td className="py-3 pr-4">{t}</td>
+                  <td className="py-3 text-right font-bold">{fmt(q)}</td>
+                  <td className="py-3 pl-3">{u}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="t-small mt-4 max-w-[60ch]">Richtwerte zur Orientierung, ohne Preise. Die echten Mengen messen wir beim Termin vor Ort auf, danach bekommen Sie das Angebot schriftlich.</p>
+          <button
+            onClick={() =>
+              onAsk({
+                topic: plan.topic,
+                message: `Vorhaben: ${plan.label}, etwa ${fmt(size)} ${plan.unit}. Ich hätte gern einen Termin vor Ort und ein Angebot.`,
+                stamp: Date.now(),
+              })
+            }
+            className="btn btn-ink mt-8"
+          >
+            Mit diesen Angaben anfragen <ArrowRight size={18} strokeWidth={1.75} />
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ---------- Kundenstimme: über die ganze Breite gesetzt ---------- */
+
+function Quote() {
+  // Zwei Zeilen bei jeder Breite (Hausregel), Wörter auf die Breite gespreizt
+  const lines = [['„Da', 'merkt', 'man,', 'dass'], ['ein', 'Profi', 'am', 'Werk', 'ist.“']]
+  return (
+    <section aria-label="Kundenstimme" className="bg-[var(--accent)] py-[clamp(6rem,10vw,9rem)] text-[var(--accent-ink)]">
+      <figure data-rise className="wrap">
+        <blockquote style={d(0)} className="t-head flex flex-col gap-[0.35em]">
+          {lines.map((l, k) => (
+            <span key={k} className="flex justify-between">
+              {l.map((w) => <span key={w}>{w}</span>)}
+            </span>
+          ))}
+        </blockquote>
+        <figcaption style={d(1)} className="mt-16 flex flex-col gap-1 md:flex-row md:justify-between">
+          <span className="font-bold">Dietmar Kraus</span>
+          <span className="md:text-center">Google-Bewertung</span>
+          <a href={CONTACT.maps} target="_blank" rel="noreferrer" className="link-u inline-flex items-center gap-1 md:justify-end">5,0 von 5 aus 3 Google-Bewertungen <ArrowUpRight size={16} strokeWidth={1.75} /></a>
+        </figcaption>
+        {/* § 5b Abs. 3 UWG: Hinweis zur Echtheit direkt am Bewertungsblock */}
+        <p style={d(2)} className="mt-8 max-w-[58ch]">Wörtlich aus unserem Google-Profil, Stand November 2026. Wir prüfen nicht selbst, ob Bewertungen von echten Kunden stammen. Wie Google prüft, steht in dessen Richtlinien.</p>
+      </figure>
+    </section>
+  )
+}
+
+/* ---------- Kontakt: die Telefonnummer als Display-Schrift ---------- */
+
+function Contact() {
+  return (
+    <section id="kontakt" aria-label="Kontakt" className="wrap flex scroll-mt-0 flex-col justify-between gap-24 bg-[var(--inverse)] pt-12 pb-8 text-white md:min-h-[80svh] md:pt-8">
+      <p className="t-lead max-w-[26ch] font-bold">Rufen Sie an. Wir kommen vorbei und sagen Ihnen ehrlich, was geht.</p>
+      <div>
+        <a href={CONTACT.phoneHref} className="t-phone tnum block font-medium whitespace-nowrap transition-colors duration-200 hover:text-[var(--accent)]">{CONTACT.phone}</a>
+        <div className="t-small mt-12 flex md:mt-[10vh] flex-col gap-3 text-[var(--inverse-muted)] md:flex-row md:justify-between">
+          <span>Mobil <a className="link-u text-white" href={CONTACT.mobileHref}>{CONTACT.mobile}</a> · {CONTACT.street}, {CONTACT.zip} {CONTACT.city}</span>
+          <span className="flex gap-6">
+            <a className="link-u text-white" href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+            <a className="link-u text-white" href={CONTACT.maps} target="_blank" rel="noreferrer">Route planen</a>
+          </span>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Inquiry({ prefill }: { prefill?: Prefill }) {
+  return (
+    <section id="anfrage" aria-label="Anfrage" className="wrap scroll-mt-0 bg-[var(--inverse)] pt-[clamp(5rem,9vw,8rem)] pb-[var(--gap-section)] text-white">
+      <div data-rise className="grid grid-cols-12 gap-x-[var(--margin)] gap-y-12">
+        <div style={d(0)} className="col-span-12 md:col-span-5">
+          <h2 className="t-lead font-bold">Lieber schreiben? Gern mit Fotos.</h2>
+          <p className="mt-6 max-w-[40ch] text-[var(--inverse-muted)]">Erzählen Sie kurz, was Sie vorhaben. Ein paar Handyfotos vom Garten helfen uns, den Termin vorzubereiten.</p>
+          <p className="t-small mt-12 font-bold">Wir arbeiten unter anderem in</p>
+          <p className="t-small mt-2 max-w-[44ch] text-[var(--inverse-muted)]">{AREA.join(', ')}.</p>
+        </div>
+        <div style={d(1)} data-still className="col-span-12 md:col-span-7">
+          <ContactForm prefill={prefill} />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ---------- Footer: Spalten oben, Name unten ---------- */
+
+function Footer({ go, calm, toggleCalm }: { go: (id: string) => void; calm: boolean; toggleCalm: () => void }) {
+  return (
+    <footer className="grid min-h-[80svh] grid-rows-[auto_1fr_auto] bg-[#121512] text-white">
+      <div className="wrap grid grid-cols-2 gap-8 pt-10 md:grid-cols-4">
+        <div>
+          <p className="font-bold">Zaidel Garten- und Landschaftsbau</p>
+          <p className="text-[var(--inverse-muted)]">{CONTACT.owner}<br />{CONTACT.street}<br />{CONTACT.zip} {CONTACT.city}</p>
+        </div>
+        <nav className="flex flex-col items-start">
+          <p className="font-bold">Seite</p>
+          {NAV.slice(0, 3).map((n) => <button key={n.id} onClick={() => go(n.id)} className="link-u text-[var(--inverse-muted)]">{n.label}</button>)}
+          <button onClick={() => go('angebot')} className="link-u text-[var(--inverse-muted)]">Was steht im Angebot?</button>
+        </nav>
+        <div className="flex flex-col items-start">
+          <p className="font-bold">Kontakt</p>
+          <a className="link-u text-[var(--inverse-muted)]" href={CONTACT.phoneHref}>{CONTACT.phone}</a>
+          <a className="link-u text-[var(--inverse-muted)]" href={CONTACT.mobileHref}>{CONTACT.mobile}</a>
+          <a className="link-u text-[var(--inverse-muted)]" href={`mailto:${CONTACT.email}`}>E-Mail schreiben</a>
+        </div>
+        <div className="flex flex-col items-start">
+          <p className="font-bold">Rechtliches</p>
+          <Link to="/impressum" className="link-u text-[var(--inverse-muted)]">Impressum</Link>
+          <Link to="/datenschutz" className="link-u text-[var(--inverse-muted)]">Datenschutz</Link>
+          <Link to="/app" className="link-u text-[var(--inverse-muted)]">Team-Login</Link>
+          <button onClick={toggleCalm} className="link-u text-[var(--inverse-muted)]" aria-pressed={!calm}>Effekte {calm ? 'an' : 'aus'}</button>
+        </div>
+      </div>
+      <div />
+      <div className="wrap pb-5">
+        <p aria-hidden className="t-monument -mb-[0.04em] text-center uppercase">Zaidel</p>
+        <p className="t-small mt-4 text-[var(--inverse-muted)]">© {new Date().getFullYear()} {CONTACT.owner} · Vorführversion</p>
+      </div>
+    </footer>
   )
 }

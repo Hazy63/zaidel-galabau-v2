@@ -28,3 +28,7 @@ tools/handover/*.pdf
 tools/handover/handover.html
 tools/handover/preview.png
 tools/handover/prev*.png
+
+# Arbeitsdateien design-taste-frontend (Screenshots, Bericht)
+.taste-skill/report.json
+.taste-skill/inspect/

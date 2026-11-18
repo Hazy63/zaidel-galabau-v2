@@ -1,0 +1,133 @@
+/* Website v2: Richtung „Der Name als Monument“ (design-taste-frontend, Seed 32105674).
+   Gilt nur innerhalb von .v2, das Auftragsbuch behält seinen eigenen Stil. */
+
+@font-face { font-family: 'Cabinet Grotesk'; src: url('./fonts/CabinetGrotesk-400.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Cabinet Grotesk'; src: url('./fonts/CabinetGrotesk-500.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Cabinet Grotesk'; src: url('./fonts/CabinetGrotesk-700.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Cabinet Grotesk'; src: url('./fonts/CabinetGrotesk-800.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+
+.v2 {
+  /* Proportionen aus der Palette „Greys and mint“, Akzent aus dem Logo (Moosgrün) statt Mint */
+  --bg: #ffffff;
+  --surface: #f1f2ef;
+  --ink: #1c211d;
+  --muted: #565d57;
+  --accent: #9cc28a;
+  --accent-ink: #1c211d;
+  --inverse: #1c211d;
+  --inverse-ink: #ffffff;
+  --inverse-muted: #c3c9c4;
+
+  /* fünf Größen */
+  --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
+  --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  --step-lead: clamp(1.375rem, 1.1rem + 0.9vw, 2rem);
+  --step-head: clamp(1.85rem, 7.4vw, 7.25rem);
+  --step-monument: min(23vw, 22rem);
+
+  --margin: clamp(1rem, 2.2vw, 2rem);
+  --gap-section: clamp(7rem, 12vw, 12rem);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  font-family: 'Cabinet Grotesk', ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--step-body);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--bg);
+  font-kerning: normal;
+}
+body:has(.v2) { background: #ffffff; }
+.v2 ::selection { background: var(--accent); color: var(--accent-ink); }
+.v2 :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+/* Bausteine im Tailwind-Layer „components“, damit Utilities (hidden, bg-white …) sie überschreiben */
+@layer components {
+.v2 .t-small { font-size: var(--step-small); line-height: 1.45; }
+.v2 .t-body { font-size: var(--step-body); line-height: 1.5; }
+.v2 .t-lead { font-size: var(--step-lead); line-height: 1.22; letter-spacing: -0.01em; }
+.v2 .t-head { font-size: var(--step-head); line-height: 0.9; font-weight: 800; letter-spacing: -0.045em; }
+.v2 .t-monument { font-size: var(--step-monument); line-height: 0.8; font-weight: 800; letter-spacing: -0.06em; }
+.v2 .wrap { padding-inline: var(--margin); }
+.v2 .text-muted { color: var(--muted); }
+.v2 .balance { text-wrap: balance; }
+.v2 .pretty { text-wrap: pretty; }
+
+/* eine Knopfform für die ganze Seite: eckig, flach */
+.v2 .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 3.5rem; padding-inline: 1.5rem;
+  font-weight: 700; font-size: var(--step-body);
+  background: var(--accent); color: var(--accent-ink);
+  transition: background-color 200ms ease, transform 140ms var(--ease-out);
+}
+.v2 .btn-ink { background: var(--ink); color: #fff; }
+.v2 .btn-tone { background: var(--surface); color: var(--ink); }
+.v2 .btn:active, .v2 .press:active { transform: scale(0.98); }
+@media (hover: hover) and (pointer: fine) {
+  .v2 .btn:hover { background: #b2d2a2; }
+  .v2 .btn-ink:hover { background: #333a35; }
+  .v2 .btn-tone:hover { background: #e4e6e1; }
+  .v2 .link-u:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+}
+}
+
+/* Hero: wo der Name das Foto kreuzt, wird er weiß (Kopie, auf den Bildrahmen beschnitten) */
+.v2 .name-cut { clip-path: inset(104px 16px 176px 16px); }
+@media (min-width: 768px) {
+  .v2 .name-cut { clip-path: inset(90px 31.5vw 0 31.5vw); }
+}
+
+/* Hero: festgepinnter Name, Baustellen ziehen darunter durch */
+.v2 .hero-layer { transition: background-color 700ms var(--ease-in-out); }
+.v2 .hero-frame { clip-path: inset(0 0 0 0); }
+.v2 .hero-frame[data-state='next'] { clip-path: inset(100% 0 0 0); }
+.v2 .hero-frame[data-state='prev'] { clip-path: inset(0 0 0 0); }
+html.js:not(.calm) .v2 .hero-frame { transition: clip-path 900ms var(--ease-out); }
+html.js:not(.calm) .v2 .hero-frame img { transition: transform 1400ms var(--ease-out); transform: scale(1.06); }
+html.js:not(.calm) .v2 .hero-frame[data-state='on'] img { transform: scale(1); }
+
+/* Galerie: kleine Rahmen, viel Fläche */
+.v2 .strip { scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: var(--margin); cursor: grab; }
+/* Telefonnummer von Rand zu Rand (15 Zeichen) */
+.v2 .t-phone { font-size: 13.2vw; line-height: 0.9; letter-spacing: -0.04em; }
+.v2 .strip::-webkit-scrollbar { display: none; }
+.v2 .strip.dragging { cursor: grabbing; scroll-snap-type: none; }
+.v2 .strip > * { scroll-snap-align: start; }
+@media (hover: hover) and (pointer: fine) {
+  .v2 .frame img { transition: transform 250ms var(--ease-out); }
+  .v2 .frame:hover img { transform: scale(1.1); }
+}
+
+/* Ablauf: Verb bleibt in der Mitte stehen, Foto zieht durch */
+.v2 .verb { position: sticky; top: 50%; transform: translateY(-50%); }
+
+/* Leistungen: Hover zeigt die Beschreibung */
+@media (hover: hover) and (pointer: fine) {
+  .v2 .cap { transition: color 160ms ease; }
+}
+
+/* Eintritt pro Abschnitt: Überschrift, dann Text, dann Bild. Nur mit JS und ohne „Effekte aus“ versteckt. */
+html.js:not(.calm) .v2 [data-rise] > * {
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 700ms var(--ease-out), transform 900ms var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 75ms);
+}
+html.js:not(.calm) .v2 [data-rise].is-in > * { opacity: 1; transform: none; }
+/* Bedienelemente wandern nicht (Klick würde sonst danebengehen), sie blenden nur ein */
+html.js:not(.calm) .v2 [data-rise] > [data-still] { transform: none; }
+
+/* ein langsam bewegtes Bild: Fotos skalieren beim Eintreten leicht zurück */
+html.js:not(.calm) .v2 .drift { transform: scale(1.08); transition: transform 2400ms var(--ease-out); }
+html.js:not(.calm) .v2 .is-in .drift, html.js:not(.calm) .v2 .drift.is-in { transform: scale(1); }
+
+/* Fotos leicht angeglichen */
+.v2 .photo { filter: saturate(1.05) contrast(1.03); }
+
+/* Lightbox */
+html.js:not(.calm) .v2 .lb-img { animation: lb-in 220ms var(--ease-out); }
+@keyframes lb-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+
+/* Zifferntabelle im Angebot */
+.v2 .tnum { font-variant-numeric: tabular-nums; }
