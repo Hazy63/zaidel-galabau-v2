@@ -112,6 +112,13 @@ html.js:not(.calm) .v2 [data-rise] > [data-still] { transform: none; }
 html.js:not(.calm) .v2 .drift { transform: scale(1.08); transition: transform 2400ms var(--ease-out); }
 html.js:not(.calm) .v2 .is-in .drift, html.js:not(.calm) .v2 .drift.is-in { transform: scale(1); }
 
+/* Footer: der Name in Moosgrün, unten angeschnitten, steigt beim Ankommen langsam aus dem Boden */
+.v2 .foot-name { height: calc(var(--step-monument) * 0.62); }
+/* dunkleres Moosgrün: 3,5:1 auf dem hellen Grund (große Schrift braucht 3:1) */
+.v2 .foot-name > p { color: #5f8a4c; }
+html.js:not(.calm) .v2 .foot-name[data-rise] > p { opacity: 1; transform: translateY(45%); transition: transform 1600ms var(--ease-out); }
+html.js:not(.calm) .v2 .foot-name[data-rise].is-in > p { transform: translateY(0); }
+
 /* Fotos leicht angeglichen */
 .v2 .photo { filter: saturate(1.05) contrast(1.03); }
 

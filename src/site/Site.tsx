@@ -298,41 +298,33 @@ function Services() {
 /* ---------- Kundenstimme: über die ganze Breite gesetzt ---------- */
 
 function Quote() {
-  // Zwei Zeilen bei jeder Breite (Hausregel), Wörter auf die Breite gespreizt
-  const lines = [['„Da', 'merkt', 'man,', 'dass'], ['ein', 'Profi', 'am', 'Werk', 'ist.“']]
+  // ruhig gesetzt: kein Farbblock mehr, der Abschluss läuft auf Weiß und dann auf dem hellen Grund aus
   return (
-    <section aria-label="Kundenstimme" className="bg-[var(--accent)] py-[clamp(5rem,9vw,8rem)] text-[var(--accent-ink)]">
-      <figure data-rise className="wrap">
-        <blockquote style={d(0)} className="t-head flex flex-col gap-[0.35em]">
-          {lines.map((l, k) => (
-            <span key={k} className="flex justify-between">
-              {l.map((w) => <span key={w}>{w}</span>)}
-            </span>
-          ))}
-        </blockquote>
-        <figcaption style={d(1)} className="mt-14 flex flex-col gap-1 md:flex-row md:justify-between">
-          <span className="font-bold">Dietmar Kraus</span>
-          <span className="md:text-center">Google-Bewertung</span>
-          <a href={CONTACT.maps} target="_blank" rel="noreferrer" className="link-u inline-flex items-center gap-1 md:justify-end">5,0 von 5 aus 3 Google-Bewertungen <ArrowUpRight size={16} strokeWidth={1.75} /></a>
+    <section aria-label="Kundenstimme" className="wrap bg-white pt-[clamp(5rem,9vw,8rem)] pb-[clamp(4rem,7vw,6rem)]">
+      <figure data-rise className="grid grid-cols-12 gap-x-[var(--margin)] gap-y-8">
+        <blockquote style={d(0)} className="t-lead balance col-span-12 font-bold md:col-span-8">„Da merkt man, dass ein Profi am Werk ist.“</blockquote>
+        <figcaption style={d(1)} className="col-span-12 flex flex-col gap-1 md:col-span-4 md:items-end md:text-right">
+          <span className="font-bold">Dietmar Kraus, Google-Bewertung</span>
+          <a href={CONTACT.maps} target="_blank" rel="noreferrer" className="link-u inline-flex items-center gap-1 text-[var(--muted)]">5,0 von 5 aus 3 Google-Bewertungen <ArrowUpRight size={16} strokeWidth={1.75} /></a>
         </figcaption>
         {/* § 5b Abs. 3 UWG: Hinweis zur Echtheit direkt am Bewertungsblock */}
-        <p style={d(2)} className="mt-8 max-w-[58ch]">Wörtlich aus unserem Google-Profil, Stand November 2026. Wir prüfen nicht selbst, ob Bewertungen von echten Kunden stammen. Wie Google prüft, steht in dessen Richtlinien.</p>
+        <p style={d(2)} className="col-span-12 max-w-[62ch] text-[var(--muted)]">Wörtlich aus unserem Google-Profil, Stand November 2026. Wir prüfen nicht selbst, ob Bewertungen von echten Kunden stammen. Wie Google prüft, steht in dessen Richtlinien.</p>
       </figure>
     </section>
   )
 }
 
-/* ---------- Start: Anruf-Band als Abschluss ---------- */
+/* ---------- Start: Anruf als Abschluss, geht nahtlos in den Footer über ---------- */
 
 function CallBand() {
   return (
-    <section aria-label="Anrufen" className="wrap bg-[var(--inverse)] pt-14 pb-12 text-white md:pt-20">
+    <section aria-label="Anrufen" className="wrap bg-[var(--surface)] pt-[clamp(4rem,7vw,6rem)]">
       <div data-rise>
         <p style={d(0)} className="t-lead max-w-[26ch] font-bold">Rufen Sie an. Wir kommen vorbei und sagen Ihnen ehrlich, was geht.</p>
-        <a style={d(1)} href={CONTACT.phoneHref} className="t-phone tnum mt-14 block font-medium whitespace-nowrap transition-colors duration-200 hover:text-[var(--accent)]">{CONTACT.phone}</a>
-        <div style={d(2)} className="mt-10 flex flex-col gap-3 sm:flex-row">
+        <a style={d(1)} href={CONTACT.phoneHref} className="t-phone tnum mt-10 block font-medium whitespace-nowrap transition-colors duration-200 hover:text-[#5f8a4c]">{CONTACT.phone}</a>
+        <div style={d(2)} data-still className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Link to="/kontakt" className="btn">Lieber schreiben <ArrowRight size={18} strokeWidth={1.75} /></Link>
-          <Link to="/ablauf" className="btn bg-white/10 text-white hover:bg-white/15">Was steht im Angebot?</Link>
+          <Link to="/ablauf" className="btn btn-ink">Was steht im Angebot?</Link>
         </div>
       </div>
     </section>
@@ -622,34 +614,35 @@ function Inquiry() {
 
 function Footer({ calm, toggleCalm }: { calm: boolean; toggleCalm: () => void }) {
   return (
-    <footer className="bg-[#121512] text-white">
-      <div className="wrap grid grid-cols-2 gap-8 pt-12 md:grid-cols-4">
+    <footer className="foot bg-[var(--surface)] text-[var(--ink)]">
+      <div className="wrap grid grid-cols-2 gap-8 pt-[clamp(4rem,7vw,6rem)] md:grid-cols-4">
         <div>
           <p className="font-bold">Zaidel Garten- und Landschaftsbau</p>
-          <p className="text-[var(--inverse-muted)]">{CONTACT.owner}<br />{CONTACT.street}<br />{CONTACT.zip} {CONTACT.city}</p>
+          <p className="text-[var(--muted)]">{CONTACT.owner}<br />{CONTACT.street}<br />{CONTACT.zip} {CONTACT.city}</p>
         </div>
         <nav className="flex flex-col items-start">
           <p className="font-bold">Seiten</p>
-          <Link to="/" className="link-u text-[var(--inverse-muted)]">Start</Link>
-          {NAV.map((n) => <Link key={n.to} to={n.to} className="link-u text-[var(--inverse-muted)]">{n.label}</Link>)}
+          <Link to="/" className="link-u text-[var(--muted)]">Start</Link>
+          {NAV.map((n) => <Link key={n.to} to={n.to} className="link-u text-[var(--muted)]">{n.label}</Link>)}
         </nav>
         <div className="flex flex-col items-start">
           <p className="font-bold">Kontakt</p>
-          <a className="link-u text-[var(--inverse-muted)]" href={CONTACT.phoneHref}>{CONTACT.phone}</a>
-          <a className="link-u text-[var(--inverse-muted)]" href={CONTACT.mobileHref}>{CONTACT.mobile}</a>
-          <a className="link-u text-[var(--inverse-muted)]" href={`mailto:${CONTACT.email}`}>E-Mail schreiben</a>
+          <a className="link-u text-[var(--muted)]" href={CONTACT.phoneHref}>{CONTACT.phone}</a>
+          <a className="link-u text-[var(--muted)]" href={CONTACT.mobileHref}>{CONTACT.mobile}</a>
+          <a className="link-u text-[var(--muted)]" href={`mailto:${CONTACT.email}`}>E-Mail schreiben</a>
         </div>
         <div className="flex flex-col items-start">
           <p className="font-bold">Rechtliches</p>
-          <Link to="/impressum" className="link-u text-[var(--inverse-muted)]">Impressum</Link>
-          <Link to="/datenschutz" className="link-u text-[var(--inverse-muted)]">Datenschutz</Link>
-          <Link to="/app" className="link-u text-[var(--inverse-muted)]">Team-Login</Link>
-          <button onClick={toggleCalm} className="link-u text-[var(--inverse-muted)]" aria-pressed={!calm}>Effekte {calm ? 'an' : 'aus'}</button>
+          <Link to="/impressum" className="link-u text-[var(--muted)]">Impressum</Link>
+          <Link to="/datenschutz" className="link-u text-[var(--muted)]">Datenschutz</Link>
+          <Link to="/app" className="link-u text-[var(--muted)]">Team-Login</Link>
+          <button onClick={toggleCalm} className="link-u text-[var(--muted)]" aria-pressed={!calm}>Effekte {calm ? 'an' : 'aus'}</button>
         </div>
       </div>
-      <div className="wrap pt-20 pb-5 md:pt-28">
-        <p aria-hidden className="t-monument -mb-[0.04em] text-center uppercase">Zaidel</p>
-        <p className="t-small mt-4 text-[var(--inverse-muted)]">© {new Date().getFullYear()} {CONTACT.owner} · Vorführversion</p>
+      <p className="wrap t-small mt-16 text-[var(--muted)]">© {new Date().getFullYear()} {CONTACT.owner} · Vorführversion</p>
+      {/* der Name läuft unten aus dem Bild: leise Unterschrift statt Paukenschlag */}
+      <div aria-hidden data-rise className="foot-name wrap mt-6 overflow-hidden">
+        <p className="t-monument text-center uppercase">Zaidel</p>
       </div>
     </footer>
   )
