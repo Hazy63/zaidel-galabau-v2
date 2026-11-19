@@ -88,24 +88,14 @@ html.js:not(.calm) .v2 .hero-frame { transition: clip-path 900ms var(--ease-out)
 html.js:not(.calm) .v2 .hero-frame img { transition: transform 1400ms var(--ease-out); transform: scale(1.06); }
 html.js:not(.calm) .v2 .hero-frame[data-state='on'] img { transform: scale(1); }
 
-/* Galerie: kleine Rahmen, viel Fläche */
-.v2 .strip { scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: var(--margin); cursor: grab; }
+/* Leistungen: große Wörter wie im Hero, passen in 7 von 12 Spalten */
+.v2 .svc-name { font-size: clamp(1.75rem, 3.9vw, 3.75rem); line-height: 0.95; letter-spacing: -0.035em; }
 /* Telefonnummer von Rand zu Rand (15 Zeichen) */
 .v2 .t-phone { font-size: 13.2vw; line-height: 0.9; letter-spacing: -0.04em; }
-.v2 .strip::-webkit-scrollbar { display: none; }
-.v2 .strip.dragging { cursor: grabbing; scroll-snap-type: none; }
-.v2 .strip > * { scroll-snap-align: start; }
+/* Galerie: Rahmen zoomen beim Überfahren leicht ins Foto */
 @media (hover: hover) and (pointer: fine) {
   .v2 .frame img { transition: transform 250ms var(--ease-out); }
   .v2 .frame:hover img { transform: scale(1.1); }
-}
-
-/* Ablauf: Verb bleibt in der Mitte stehen, Foto zieht durch */
-.v2 .verb { position: sticky; top: 50%; transform: translateY(-50%); }
-
-/* Leistungen: Hover zeigt die Beschreibung */
-@media (hover: hover) and (pointer: fine) {
-  .v2 .cap { transition: color 160ms ease; }
 }
 
 /* Eintritt pro Abschnitt: Überschrift, dann Text, dann Bild. Nur mit JS und ohne „Effekte aus“ versteckt. */

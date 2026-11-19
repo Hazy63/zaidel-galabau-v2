@@ -31,6 +31,8 @@ writeFileSync('shots/_test.png', Buffer.from(tiny, 'base64'))
 await p.goto(base, { waitUntil: 'networkidle0' })
 await p.evaluate(() => new Promise((r) => { localStorage.clear(); const q = indexedDB.deleteDatabase('zaidel-auftragsbuch'); q.onsuccess = q.onerror = q.onblocked = () => r() }))
 await p.reload({ waitUntil: 'networkidle0' })
+// v2: Formular steht auf der eigenen Kontaktseite
+await p.goto(base + '#/kontakt', { waitUntil: 'networkidle0' })
 
 // 1) Kontaktformular -> Anfrage im CRM (v2: Formular im Abschnitt #anfrage)
 // sofort springen: die Seite scrollt sonst weich über viele Bildschirme, während schon geklickt wird

@@ -11,7 +11,10 @@ export default function App() {
     <HashRouter>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<Site />} />
+        <Route path="/" element={<Site page="start" />} />
+        <Route path="/arbeiten" element={<Site page="arbeiten" />} />
+        <Route path="/ablauf" element={<Site page="ablauf" />} />
+        <Route path="/kontakt" element={<Site page="kontakt" />} />
         <Route path="/impressum" element={<Legal page="impressum" />} />
         <Route path="/datenschutz" element={<Legal page="datenschutz" />} />
         <Route

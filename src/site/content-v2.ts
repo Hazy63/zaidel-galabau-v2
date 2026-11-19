@@ -8,20 +8,14 @@ export const HERO_FRAMES: { img: string; title: string; ground: string; pos?: st
   { img: 'sandstein-hochbeet', title: 'Hochbeet aus Sandsteinblöcken', ground: '#adaba7' },
 ]
 
-/** Leistungen als Namensspalten: drei Spalten mit je zwei Gruppen */
-export const GROUPS: { name: string; items: string[]; text: string }[][] = [
-  [
-    { name: 'Pflaster und Wege', items: ['Hofeinfahrten', 'Garagenvorplätze', 'Gartenwege', 'Stellplätze mit Rasengitter', 'Entwässerung'], text: 'Mit sauberem Unterbau, damit nach Jahren nichts absackt.' },
-    { name: 'Treppen und Stufen', items: ['Blockstufen aus Granit', 'Betonblockstufen', 'Podeste', 'Hauseingänge'], text: 'Auf Fundament gesetzt, trittsicher und frostfest.' },
-  ],
-  [
-    { name: 'Mauern und Naturstein', items: ['Hangmauern aus Buntsandstein', 'Trockenmauern', 'Hochbeete', 'Gabionen', 'Natursteinverblender'], text: 'Gesetzt mit dem Bagger, ausgerichtet von Hand.' },
-    { name: 'Terrassen', items: ['Feinsteinzeug', 'Polygonalplatten', 'Großformatplatten', 'Betonplatten'], text: 'Mit Gefälle, das Wasser vom Haus wegführt.' },
-  ],
-  [
-    { name: 'Zäune und Sichtschutz', items: ['Doppelstabmatten', 'Sichtschutzstreifen', 'Tore', 'Gabionenzäune', 'Carports und Gartenhäuser'], text: 'Pfosten einbetoniert, Fluchten gerade.' },
-    { name: 'Garten und Pflege', items: ['Neuanlage nach dem Hausbau', 'Rollrasen', 'Beete und Hecken', 'Heckenschnitt', 'Regelmäßige Pflege'], text: 'Auf Wunsch kümmern wir uns auch danach um den Garten.' },
-  ],
+/** Leistungen als Liste großer Wörter, beim Überfahren erscheint das Foto im Rahmen */
+export const GROUPS: { name: string; items: string[]; text: string; img: string }[] = [
+  { name: 'Pflaster und Wege', img: 'pflaster-sandstein-einfahrt', items: ['Hofeinfahrten', 'Garagenvorplätze', 'Gartenwege', 'Rasengitter', 'Entwässerung'], text: 'Mit sauberem Unterbau, damit nach Jahren nichts absackt.' },
+  { name: 'Mauern und Naturstein', img: 'sandsteinmauer-lang', items: ['Hangmauern aus Buntsandstein', 'Trockenmauern', 'Hochbeete', 'Gabionen', 'Verblender'], text: 'Gesetzt mit dem Bagger, ausgerichtet von Hand.' },
+  { name: 'Treppen und Stufen', img: 'granit-treppe-einfahrt', items: ['Blockstufen aus Granit', 'Betonblockstufen', 'Podeste', 'Hauseingänge'], text: 'Auf Fundament gesetzt, trittsicher und frostfest.' },
+  { name: 'Terrassen', img: 'terrasse-platten', items: ['Feinsteinzeug', 'Polygonalplatten', 'Großformatplatten', 'Betonplatten'], text: 'Mit Gefälle, das Wasser vom Haus wegführt.' },
+  { name: 'Zäune und Sichtschutz', img: 'sichtschutz-anthrazit', items: ['Doppelstabmatten', 'Sichtschutzstreifen', 'Tore', 'Carports und Gartenhäuser'], text: 'Pfosten einbetoniert, Fluchten gerade.' },
+  { name: 'Garten und Pflege', img: 'sitzplatz-trockenmauer', items: ['Neuanlage nach dem Hausbau', 'Rollrasen', 'Beete und Hecken', 'Regelmäßige Pflege'], text: 'Auf Wunsch kümmern wir uns auch danach um den Garten.' },
 ]
 
 /** Ablauf: ein Verb pro Schritt */
